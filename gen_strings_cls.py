@@ -2,11 +2,22 @@ import os
 import re
 import sys
 import datetime
+import optparse
 import plistlib
 import ConfigParser
 from string import Template
 
-input_dir_path = os.path.normpath(sys.argv[1])
+usage = '''
+  %prog <strings_dir> <output_dir> [options]
+    <strings_dir>: The localization strings directory
+    <output_dir>: The generated R class directory'''
+desc = 'This script is used for generating R class with localization strings and strings dict.'
+parser = optparse.OptionParser(usage=usage, description=desc)
+parser.add_option('-v', '--verbose', help='show detail strings parse result', default=False, action='store_true')
+(opts, args) = parser.parse_args()
+
+if len(sys.argv) == 1: parser.print_help(); sys.exit(0);
+strings_dir_path = os.path.normpath(sys.argv[1])
 output_dir_path = os.path.normpath(sys.argv[2])
 
 header_template_string_format = '''/**
@@ -43,8 +54,8 @@ ${PROPERTY_IMPLEMENTATION}
 
 def generate_strings(strings_file, stringsdict_file):
 # define local variables
-    strings_path = os.path.join(input_dir_path, strings_file)
-    stringsdict_path = os.path.join(input_dir_path, stringsdict_file)
+    strings_path = os.path.join(strings_dir_path, strings_file)
+    stringsdict_path = os.path.join(strings_dir_path, stringsdict_file)
 
     string_table_name = os.path.splitext(strings_file)[0]
     class_category_name = string_table_name.replace(' ', '')
@@ -62,18 +73,18 @@ def generate_strings(strings_file, stringsdict_file):
 # parse strings
     string_property_dict = {}
     if os.path.isfile(strings_path):
-        input_strings = open(strings_path, 'r')
-        input_strings_temp_name = strings_path + '.temp'
-        input_strings_temp = open(input_strings_temp_name, 'w')
+        strings_file = open(strings_path, 'r')
+        strings_temp_path = strings_path + '.temp'
+        strings_temp_file = open(strings_temp_path, 'w')
 
         # Convert .strings file to .ini format
         config_parser_title = 'Strings'
-        input_strings_temp.write('[%s]\n' % config_parser_title)
+        strings_temp_file.write('[%s]\n' % config_parser_title)
 
         # remove comments
         rule1 = "(\/\*(\s|.)*?\*\/)|(\/\/.*)"
-        lines = input_strings.read()
-        input_strings.close()
+        lines = strings_file.read()
+        strings_file.close()
         lines = re.sub(rule1, '', lines)
 
         # delete space in each begin of line
@@ -81,13 +92,15 @@ def generate_strings(strings_file, stringsdict_file):
         lines = re.sub(rule2, '', lines)
 
         # save it in a temp file
-        input_strings_temp.write(lines)
-        input_strings_temp.close()
+        strings_temp_file.write(lines)
+        strings_temp_file.close()
 
         config_parser = ConfigParser.ConfigParser()
-        # preserve case
-        config_parser.optionxform = str
-        config_parser.read(input_strings_temp_name)
+        config_parser.optionxform = str     # preserve case
+        try:
+            config_parser.read(strings_temp_path)
+        except ConfigParser.ParsingError as ex:
+            if opts.verbose: print ex
         string_pair = config_parser.items(config_parser_title)
 
         for pair in string_pair:
@@ -96,7 +109,7 @@ def generate_strings(strings_file, stringsdict_file):
             if string_key:
                 string_property_dict[string_key] = string_value
 
-        os.remove(input_strings_temp_name)
+        os.remove(strings_temp_path)
 
 # parse strings dict
     if os.path.isfile(stringsdict_path):
@@ -104,8 +117,9 @@ def generate_strings(strings_file, stringsdict_file):
         for string_key in dictionary:
             try:
                 string_value = dictionary[string_key]["custom_key"]["other"]
-            except KeyError as e:
+            except KeyError as ex:
                 string_value = ""
+                if opts.verbose: print ex
             string_property_dict[string_key] = string_value     # Used as comment
 
 # generate R file
@@ -132,20 +146,11 @@ def generate_strings(strings_file, stringsdict_file):
         implementation_file.write(new_impl_content)
     implementation_file.close()
 
-
-def main():
-    if not os.path.isdir(input_dir_path):
-        print 'Input directory is not a directory'
-    elif not os.path.isdir(output_dir_path):
-        print 'Output directory is not a directory'
-    else:
-        file_names = []
-        for file_name in os.listdir(input_dir_path):
-            if file_name.lower().endswith('strings') or file_name.lower().endswith('stringsdict'):
-                file_names.append(os.path.splitext(file_name)[0])
-
-        for file_name in list(set(file_names)):
-            generate_strings(file_name + '.strings', file_name + '.stringsdict')
-
 if __name__ == '__main__':
-    main()
+    file_names = []
+    for file_name in os.listdir(strings_dir_path):
+        if file_name.lower().endswith('strings') or file_name.lower().endswith('stringsdict'):
+            file_names.append(os.path.splitext(file_name)[0])
+
+    for file_name in list(set(file_names)):
+        generate_strings(file_name + '.strings', file_name + '.stringsdict')
