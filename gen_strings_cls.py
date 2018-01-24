@@ -52,7 +52,7 @@ impl_template_string_format = '''/**
 ${PROPERTY_IMPLEMENTATION}
 @end'''
 
-def generate_strings(strings_file, stringsdict_file):
+def generate_strings_class(strings_file, stringsdict_file):
 # define local variables
     strings_path = os.path.join(strings_dir_path, strings_file)
     stringsdict_path = os.path.join(strings_dir_path, stringsdict_file)
@@ -146,11 +146,24 @@ def generate_strings(strings_file, stringsdict_file):
         implementation_file.write(new_impl_content)
     implementation_file.close()
 
-if __name__ == '__main__':
+def main():
     file_names = []
-    for file_name in os.listdir(strings_dir_path):
-        if file_name.lower().endswith('strings') or file_name.lower().endswith('stringsdict'):
-            file_names.append(os.path.splitext(file_name)[0])
+    en_lproj_name = 'en.lproj'
+    strings_ext = '.strings'
+    stringsdict_ext = '.stringsdict'
+    
+    if en_lproj_name in os.listdir(strings_dir_path):
+        for file_name in os.listdir(os.path.join(strings_dir_path, en_lproj_name)):
+            (name, ext) = os.path.splitext(file_name)
+            file_names.append(name)
+    else:
+        for file_name in os.listdir(strings_dir_path):
+            (name, ext) = os.path.splitext(file_name)
+            if ext == strings_ext or ext == stringsdict_ext:
+                file_names.append(name)
 
-    for file_name in list(set(file_names)):
-        generate_strings(file_name + '.strings', file_name + '.stringsdict')
+    for name in list(set(file_names)):
+        generate_strings_class(name + strings_ext, name + stringsdict_ext)
+
+if __name__ == '__main__':
+    main()
