@@ -151,16 +151,19 @@ def main():
     en_lproj_name = 'en.lproj'
     strings_ext = '.strings'
     stringsdict_ext = '.stringsdict'
-    
-    if en_lproj_name in os.listdir(strings_dir_path):
-        for file_name in os.listdir(os.path.join(strings_dir_path, en_lproj_name)):
-            (name, ext) = os.path.splitext(file_name)
-            file_names.append(name)
-    else:
-        for file_name in os.listdir(strings_dir_path):
-            (name, ext) = os.path.splitext(file_name)
-            if ext == strings_ext or ext == stringsdict_ext:
+
+    try:
+        if en_lproj_name in os.listdir(strings_dir_path):
+            for file_name in os.listdir(os.path.join(strings_dir_path, en_lproj_name)):
+                (name, ext) = os.path.splitext(file_name)
                 file_names.append(name)
+        else:
+            for file_name in os.listdir(strings_dir_path):
+                (name, ext) = os.path.splitext(file_name)
+                if ext == strings_ext or ext == stringsdict_ext:
+                    file_names.append(name)
+    except Exception as e:
+        pass
 
     for name in list(set(file_names)):
         generate_strings_class(name + strings_ext, name + stringsdict_ext)
