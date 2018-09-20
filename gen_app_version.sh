@@ -35,12 +35,11 @@ fi
 # Cut git output with delimiter "-"
 GIT_COMMIT_COUNT=`echo "$GIT_DESCRIBE_OUTPUT" | cut -d '-' -f2`
 if [[ -n "$GIT_COMMIT_COUNT" ]]; then
-  ZZ_BUILD_NUMBER=$GIT_COMMIT_COUNT
+  ZZ_BUILD_NUMBER=$[$GIT_COMMIT_COUNT+1]
 fi
 
 # Write build configuration values to Xcode xcconfig
-echo "// DO NOT CHANGE THIS FILE MANUALLY" > "$XCCONFIG_FILE_NAME"
-echo "// Generated on: $(date)"$'\n' >> "$XCCONFIG_FILE_NAME"
+echo "// DO NOT CHANGE THIS FILE MANUALLY"$'\n' > "$XCCONFIG_FILE_NAME"
 echo "ZZ_VERSION = $ZZ_VERSION" >> "$XCCONFIG_FILE_NAME"
 echo "ZZ_BUILD_NUMBER = $ZZ_BUILD_NUMBER" >> "$XCCONFIG_FILE_NAME"
 touch "$XCCONFIG_FILE_NAME"
